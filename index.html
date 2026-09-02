@@ -273,6 +273,10 @@
   <div class="admin-body">
     <!-- 商品 -->
     <div id="tab-products">
+      <div class="admin-card" style="background:#fff8e1;border:1px solid #f0d47a;margin-bottom:12px;">
+        <p style="font-size:12px;color:#8a6d3b;margin:0 0 10px;">⚠️ 在这里<b>删除 / 修改 / 添加</b>商品后，点下面按钮下载一份新文件，再把它重新上传部署（和第一次部署一样），所有同学就能看到新菜单了。</p>
+        <button class="btn-block" id="downloadFileBtn" style="background:#4a90d9;color:#fff;border:none;">⬇️ 下载更新后的页面文件</button>
+      </div>
       <div class="admin-card" id="productFormCard">
         <div class="h" id="productFormTitle">添加商品</div>
         <div class="row">
@@ -372,6 +376,7 @@
    每个商品 { name:名称, price:价格(元), emoji:图标, cat:分类, soldOut:是否下架 }
    分类顺序按 categories 数组排列。改完保存这个文件、重新部署即可让所有人看到。
 ===================================================================== */
+/*__CONFIG_START__*/
 const DEFAULT_CONFIG = {
   shopName: "宿舍小卖部",
   notice: "点好下单后，复制订单发微信给我，满20可送到宿舍哦~",
@@ -413,6 +418,7 @@ const DEFAULT_CONFIG = {
     {name:"打火机",   price:1,  emoji:"🔥", cat:"其他"},
   ]
 };
+/*__CONFIG_END__*/
 
 /* ==================== 存储 ==================== */
 const KEY = "dormStoreData_v1";
@@ -897,6 +903,53 @@ function resetData(){
   });
 }
 
+function downloadUpdatedFile(){
+  // 把当前本机的增删改「烘焙」进一份新的 index.html，重新部署后所有人可见
+  const cfg = {
+    shopName: state.shopName,
+    notice: state.notice,
+    contact: state.contact,
+    password: state.password,
+    pushToken: state.pushToken || "",
+    payQr: state.payQr || "",
+    payQr2: state.payQr2 || "",
+    categories: state.categories.slice(),
+    products: state.products.map(p=>{
+      const o = {name:p.name, price:p.price, emoji:p.emoji, cat:p.cat};
+      if(p.soldOut) o.soldOut = true;
+      return o;
+    })
+  };
+  const newConfig = "const DEFAULT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";";
+  const SM = "/*__CONFIG_START__*/";
+  const EM = "/*__CONFIG_END__*/";
+  const btn = $("downloadFileBtn");
+  btn.disabled = true; btn.textContent = "生成中…";
+  fetch(location.href, {cache:"no-store"}).then(r=>r.text()).then(html=>{
+    const s = html.indexOf(SM);
+    const e = html.indexOf(EM);
+    if(s < 0 || e < 0 || e <= s){
+      btn.disabled = false; btn.textContent = "⬇️ 下载更新后的页面文件";
+      toast("无法定位配置，请改用「导出数据」再让 Claude 帮你改");
+      return;
+    }
+    const head = html.slice(0, s + SM.length);
+    const tail = html.slice(e);
+    const out = head + "\n" + newConfig + "\n" + tail;
+    const blob = new Blob([out], {type:"text/html;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "index.html";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 8000);
+    btn.disabled = false; btn.textContent = "⬇️ 下载更新后的页面文件";
+    toast("已下载 index.html，重新上传部署即生效");
+  }).catch(()=>{
+    btn.disabled = false; btn.textContent = "⬇️ 下载更新后的页面文件";
+    toast("下载失败：请用 https 链接打开本页再试（本地打开的文件无法生成）");
+  });
+}
+
 /* ==================== 事件绑定 ==================== */
 $("openAdmin").onclick = openAdmin;
 $("backToShop").onclick = closeAdmin;
@@ -938,6 +991,7 @@ $("adminList").onclick = e=>{
     confirmBox("确定删除该商品？", "删除商品", ()=>{
       state.products = state.products.filter(p=>p.id!==id);
       saveState(); renderAdminList();
+      toast("已删除");
     });
   }
 };
@@ -978,6 +1032,7 @@ $("exportBtn").onclick = exportData;
 $("importBtn").onclick = openImport;
 $("importOk").onclick = doImport;
 $("resetBtn").onclick = resetData;
+$("downloadFileBtn").onclick = downloadUpdatedFile;
 $("confirmOk").onclick = ()=>{ $("confirmMask").classList.add("hidden"); if(confirmCb){ const cb=confirmCb; confirmCb=null; cb(); } };
 $("confirmCancel").onclick = ()=>{ $("confirmMask").classList.add("hidden"); confirmCb=null; };
 $("pwdOk").onclick = ()=>{
