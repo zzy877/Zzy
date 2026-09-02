@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>宿舍小卖部</title>
+<style>
+  :root{
+    --brand:#ff7a2f;        /* 主色：暖橙 */
+    --brand-deep:#e85f14;
+    --bg:#f6f6f6;
+    --card:#ffffff;
+    --text:#2b2b2b;
+    --muted:#999;
+    --line:#eee;
+    --green:#22c55e;
+    --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:15px;
+    line-height:1.5;
+  }
+  button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;font-size:inherit;}
+  input,textarea{font-family:inherit;font-size:inherit;}
+
+  .hidden{display:none !important;}
+
+  /* ===== 顶部 ===== */
+  header{
+    background:linear-gradient(135deg,var(--brand),var(--brand-deep));
+    color:#fff;
+    padding:18px 16px 14px;
+    position:sticky;top:0;z-index:20;
+  }
+  .shop-top{display:flex;align-items:center;justify-content:space-between;}
+  .shop-name{font-size:20px;font-weight:700;letter-spacing:.5px;}
+  .admin-btn{font-size:13px;opacity:.85;padding:6px 10px;border:1px solid rgba(255,255,255,.5);border-radius:16px;}
+  .notice{font-size:13px;opacity:.92;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .search-bar{margin:12px 16px 0;background:#fff;border-radius:22px;padding:9px 16px;display:flex;align-items:center;gap:8px;color:#bbb;}
+  .search-bar input{border:none;outline:none;flex:1;background:transparent;font-size:14px;}
+
+  /* ===== 分类 ===== */
+  .cats{
+    display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-deep));
+    -webkit-overflow-scrolling:touch;
+  }
+  .cats::-webkit-scrollbar{display:none;}
+  .cat{
+    flex:0 0 auto;padding:7px 16px;border-radius:18px;font-size:14px;
+    background:rgba(255,255,255,.22);color:#fff;white-space:nowrap;
+  }
+  .cat.on{background:#fff;color:var(--brand-deep);font-weight:600;}
+
+  /* ===== 商品 ===== */
+  main{padding:12px 12px 140px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .item{
+    background:var(--card);border-radius:14px;padding:12px;
+    display:flex;flex-direction:column;gap:8px;position:relative;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .item.soldout{opacity:.5;}
+  .item .pic{font-size:42px;text-align:center;line-height:1;padding:6px 0;}
+  .item .name{font-size:14px;font-weight:600;}
+  .item .price{color:var(--brand-deep);font-weight:700;font-size:16px;}
+  .item .price small{font-size:11px;font-weight:400;}
+  .soldout-tag{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;}
+
+  .stepper{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:2px;}
+  .stepper .btn{
+    width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;
+    font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;font-weight:600;
+  }
+  .stepper .btn:active{background:var(--brand-deep);}
+  .stepper .btn.sub{background:#fff;border:1px solid var(--brand);color:var(--brand);}
+  .stepper .num{min-width:18px;text-align:center;font-weight:700;font-size:15px;}
+  .add-btn{
+    background:var(--brand);color:#fff;font-size:13px;padding:6px 14px;border-radius:16px;
+    align-self:flex-end;font-weight:600;
+  }
+  .add-btn:active{background:var(--brand-deep);}
+
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;}
+
+  /* ===== 底部购物车栏 ===== */
+  .cart-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:#fff;border-top:1px solid var(--line);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    display:flex;align-items:center;gap:12px;
+  }
+  .cart-icon{position:relative;font-size:26px;line-height:1;}
+  .cart-badge{
+    position:absolute;top:-6px;right:-10px;background:var(--red);color:#fff;
+    font-size:11px;min-width:18px;height:18px;border-radius:9px;padding:0 4px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cart-info{flex:1;min-width:0;}
+  .cart-total{font-weight:700;color:var(--brand-deep);font-size:18px;}
+  .cart-total small{font-size:12px;font-weight:400;color:var(--muted);}
+  .checkout-btn{
+    background:var(--brand);color:#fff;font-size:16px;font-weight:600;
+    padding:12px 26px;border-radius:24px;
+  }
+  .checkout-btn:active{background:var(--brand-deep);}
+  .checkout-btn:disabled{background:#ccc;}
+
+  /* ===== 弹窗 ===== */
+  .mask{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .sheet{
+    background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+    animation:up .22s ease;
+  }
+  @keyframes up{from{transform:translateY(40px);opacity:.4;}to{transform:none;opacity:1;}}
+  .sheet h3{font-size:17px;margin-bottom:14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
+  .field input,.field textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none;
+  }
+  .field input:focus,.field textarea:focus{border-color:var(--brand);}
+  .row{display:flex;gap:10px;}
+  .row .field{flex:1;}
+
+  .order-text{
+    width:100%;min-height:140px;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;padding:12px;font-size:13px;line-height:1.7;white-space:pre-wrap;
+    margin-bottom:12px;user-select:text;-webkit-user-select:text;
+  }
+  .btn-block{
+    width:100%;background:var(--brand);color:#fff;font-size:16px;font-weight:600;
+    padding:13px;border-radius:12px;margin-bottom:10px;
+  }
+  .btn-block:active{background:var(--brand-deep);}
+  .btn-block.gray{background:#eef0f3;color:#555;}
+  .btn-block.green{background:var(--green);}
+  .close-x{float:right;color:var(--muted);font-size:20px;line-height:1;padding:0 4px;}
+
+  /* ===== 店主管理 ===== */
+  #admin-view{position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;padding-bottom:60px;}
+  .admin-head{background:linear-gradient(135deg,#333,#222);color:#fff;padding:16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;}
+  .admin-head .back{font-size:16px;padding:4px 8px;}
+  .admin-head h2{font-size:17px;flex:1;}
+  .admin-tabs{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line);}
+  .tab{flex:1;text-align:center;padding:9px 0;border-radius:10px;background:var(--bg);font-size:14px;color:#666;}
+  .tab.on{background:var(--brand);color:#fff;font-weight:600;}
+  .admin-body{padding:16px;}
+  .admin-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;}
+  .admin-card .h{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+  .mini-btn{font-size:13px;color:var(--brand);padding:4px 8px;}
+  .prow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f3f3f3;}
+  .prow:last-child{border-bottom:none;}
+  .prow .pemoji{font-size:24px;width:32px;text-align:center;}
+  .prow .pinfo{flex:1;min-width:0;}
+  .prow .pname{font-size:14px;font-weight:600;}
+  .prow .pprice{font-size:12px;color:var(--muted);}
+  .prow .pcat{font-size:11px;color:#fff;background:var(--brand);padding:1px 8px;border-radius:9px;}
+  .icon-btn{font-size:15px;padding:4px 6px;color:var(--muted);}
+  .icon-btn.del{color:var(--red);}
+  .cat-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border-radius:16px;padding:6px 12px;margin:0 8px 8px 0;font-size:14px;}
+  .cat-chip .x{color:var(--muted);}
+
+  .toast{
+    position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);background:rgba(0,0,0,.78);
+    color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;z-index:99;opacity:0;
+    transition:opacity .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ============ 顾客端 ============ -->
+<div id="customer-view">
+  <header>
+    <div class="shop-top">
+      <div class="shop-name" id="shopName">宿舍小卖部</div>
+      <button class="admin-btn" id="openAdmin">店主入口</button>
+    </div>
+    <div class="notice" id="notice"></div>
+    <div class="search-bar">
+      <span>🔍</span><input type="text" id="searchInput" placeholder="搜索商品">
+    </div>
+  </header>
+
+  <div class="cats" id="cats"></div>
+
+  <main>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <div class="cart-bar">
+    <div class="cart-icon">🛒<span class="cart-badge hidden" id="cartBadge">0</span></div>
+    <div class="cart-info">
+      <div class="cart-total" id="cartTotal">¥0.00</div>
+      <div id="cartCount" style="font-size:12px;color:#999;">购物车是空的</div>
+    </div>
+    <button class="checkout-btn" id="checkoutBtn" disabled>去结算</button>
+  </div>
+</div>
+
+<!-- 结算弹窗 -->
+<div class="mask hidden" id="checkoutMask">
+  <div class="sheet">
+    <h3>填写订单信息 <button class="close-x" data-close="checkoutMask">×</button></h3>
+    <div class="row">
+      <div class="field"><label>姓名 / 昵称</label><input id="fName" placeholder="如：张三"></div>
+      <div class="field"><label>宿舍号</label><input id="fRoom" placeholder="如：3栋502"></div>
+    </div>
+    <div class="field"><label>电话（选填，方便联系）</label><input id="fPhone" type="tel" placeholder="手机号"></div>
+    <div class="field"><label>备注（选填，如：冰的 / 晚点送）</label><textarea id="fNote" rows="2" placeholder="备注"></textarea></div>
+    <button class="btn-block" id="genOrderBtn">生成订单</button>
+  </div>
+</div>
+
+<!-- 订单结果弹窗 -->
+<div class="mask hidden" id="orderMask">
+  <div class="sheet">
+    <h3>订单已生成 <button class="close-x" data-close="orderMask">×</button></h3>
+    <p style="font-size:13px;color:#999;margin-bottom:10px;">点下面按钮复制，然后到微信里粘贴发给我即可。复制失败可直接长按下方文字手动复制。</p>
+    <textarea class="order-text" id="orderText" readonly></textarea>
+    <button class="btn-block green" id="copyBtn">📋 一键复制订单</button>
+    <button class="btn-block gray" id="doneBtn">完成，返回继续逛</button>
+  </div>
+</div>
+
+<!-- ============ 店主管理 ============ -->
+<div id="admin-view" class="hidden">
+  <div class="admin-head">
+    <button class="back" id="backToShop">‹ 返回</button>
+    <h2>店主管理</h2>
+  </div>
+  <div class="admin-tabs">
+    <button class="tab on" data-tab="products">商品</button>
+    <button class="tab" data-tab="cats">分类</button>
+    <button class="tab" data-tab="settings">设置</button>
+  </div>
+  <div class="admin-body">
+    <!-- 商品 -->
+    <div id="tab-products">
+      <button class="btn-block" id="addProductBtn" style="margin-top:4px;">＋ 添加商品</button>
+      <div id="adminList" style="margin-top:12px;"></div>
+    </div>
+    <!-- 分类 -->
+    <div id="tab-cats" class="hidden">
+      <div class="admin-card">
+        <div class="h">分类管理 <span class="mini-btn" id="addCatBtn">＋ 新增分类</span></div>
+        <div id="catList"></div>
+      </div>
+    </div>
+    <!-- 设置 -->
+    <div id="tab-settings" class="hidden">
+      <div class="admin-card">
+        <div class="h">店铺信息</div>
+        <div class="field"><label>店名</label><input id="setName"></div>
+        <div class="field"><label>顶部公告（如：满20送到宿舍）</label><input id="setNotice"></div>
+        <div class="field"><label>联系方式（显示给顾客）</label><input id="setContact"></div>
+        <div class="field"><label>管理密码（留空则免密）</label><input id="setPassword" placeholder="建议设置，防止同学乱改"></div>
+        <button class="btn-block" id="saveSettingsBtn">保存设置</button>
+      </div>
+      <div class="admin-card">
+        <div class="h">数据备份</div>
+        <p style="font-size:13px;color:#999;margin-bottom:10px;">导出配置可备份你的菜单；导入可恢复。换手机或重发链接时用得上。</p>
+        <button class="btn-block gray" id="exportBtn">⬇ 导出配置</button>
+        <button class="btn-block gray" id="importBtn">⬆ 导入配置</button>
+        <button class="btn-block" id="resetBtn" style="background:#fff;border:1px solid var(--red);color:var(--red);">恢复默认菜单</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 商品编辑弹窗 -->
+<div class="mask hidden" id="productMask">
+  <div class="sheet">
+    <h3 id="productTitle">添加商品 <button class="close-x" data-close="productMask">×</button></h3>
+    <div class="row">
+      <div class="field"><label>名称</label><input id="pName" placeholder="如：可口可乐"></div>
+      <div class="field"><label>价格（元）</label><input id="pPrice" type="number" step="0.5" placeholder="3"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>图标（一个表情符号）</label><input id="pEmoji" placeholder="🥤"></div>
+      <div class="field"><label>分类</label><select id="pCat" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;"></select></div>
+    </div>
+    <div class="field"><label><input type="checkbox" id="pSoldOut" style="width:auto;margin-right:6px;">下架 / 卖完了</label></div>
+    <button class="btn-block" id="saveProductBtn">保存</button>
+  </div>
+</div>
+
+<!-- 密码弹窗 -->
+<div class="mask hidden" id="pwdMask">
+  <div class="sheet">
+    <h3>请输入管理密码 <button class="close-x" data-close="pwdMask">×</button></h3>
+    <div class="field"><input id="pwdInput" type="password" placeholder="密码"></div>
+    <button class="btn-block" id="pwdOk">确定</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   ★★★ 店主：在这里改菜单 ★★★
+   每个商品 { name:名称, price:价格(元), emoji:图标, cat:分类, soldOut:是否下架 }
+   分类顺序按 categories 数组排列。改完保存这个文件、重新部署即可让所有人看到。
+===================================================================== */
+const DEFAULT_CONFIG = {
+  shopName: "宿舍小卖部",
+  notice: "点好下单后，复制订单发微信给我，满20可送到宿舍哦~",
+  contact: "微信：xiaomaibu2026",
+  password: "", // 管理密码，建议设一个
+  categories: ["饮料", "零食", "泡面速食", "日用品", "其他"],
+  products: [
+    // 饮料
+    {name:"可口可乐", price:3,  emoji:"🥤", cat:"饮料"},
+    {name:"雪碧",     price:3,  emoji:"🥤", cat:"饮料"},
+    {name:"冰红茶",   price:3,  emoji:"🧋", cat:"饮料"},
+    {name:"矿泉水",   price:2,  emoji:"💧", cat:"饮料"},
+    {name:"红牛",     price:6,  emoji:"🥫", cat:"饮料"},
+    {name:"奶茶",     price:5,  emoji:"🧋", cat:"饮料"},
+    // 零食
+    {name:"薯片",     price:6,  emoji:"🍟", cat:"零食"},
+    {name:"辣条",     price:2,  emoji:"🌶️", cat:"零食"},
+    {name:"奥利奥饼干", price:5, emoji:"🍪", cat:"零食"},
+    {name:"巧克力",   price:8,  emoji:"🍫", cat:"零食"},
+    {name:"火腿肠",   price:2,  emoji:"🌭", cat:"零食"},
+    {name:"瓜子",     price:4,  emoji:"🌻", cat:"零食"},
+    // 泡面速食
+    {name:"桶装泡面", price:5,  emoji:"🍜", cat:"泡面速食"},
+    {name:"袋装泡面", price:3.5,emoji:"🍜", cat:"泡面速食"},
+    {name:"自热米饭", price:12, emoji:"🍚", cat:"泡面速食"},
+    {name:"卤蛋",     price:1.5,emoji:"🥚", cat:"泡面速食"},
+    // 日用品
+    {name:"抽纸",     price:4,  emoji:"🧻", cat:"日用品"},
+    {name:"牙膏",     price:8,  emoji:"🪥", cat:"日用品"},
+    {name:"洗发水",   price:15, emoji:"🧴", cat:"日用品"},
+    {name:"洗衣液",   price:12, emoji:"🧺", cat:"日用品"},
+    {name:"垃圾袋",   price:3,  emoji:"🗑️", cat:"日用品"},
+    {name:"衣架",     price:6,  emoji:"🧷", cat:"日用品"},
+    // 其他
+    {name:"电池",     price:5,  emoji:"🔋", cat:"其他"},
+    {name:"打火机",   price:1,  emoji:"🔥", cat:"其他"},
+  ]
+};
+
+/* ==================== 存储 ==================== */
+const KEY = "dormStoreData_v1";
+const CART_KEY = "dormStoreCart_v1";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      return Object.assign({}, DEFAULT_CONFIG, d);
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}
+function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function loadCart(){ try{ return JSON.parse(localStorage.getItem(CART_KEY))||{}; }catch(e){ return {}; } }
+function saveCart(){ localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+
+let state = loadState();
+let cart = loadCart();
+
+/* ==================== 工具 ==================== */
+const $ = id => document.getElementById(id);
+function fmt(n){ return (Math.round(n*100)/100).toString(); }
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"), 1600);
+}
+
+/* ==================== 顾客端渲染 ==================== */
+let currentCat = "全部";
+let searchKey = "";
+
+function allCats(){ return ["全部", ...state.categories]; }
+
+function renderHeader(){
+  $("shopName").textContent = state.shopName;
+  $("notice").textContent = state.notice;
+  document.title = state.shopName;
+}
+
+function renderCats(){
+  const wrap = $("cats"); wrap.innerHTML = "";
+  allCats().forEach(c=>{
+    const b = document.createElement("button");
+    b.className = "cat" + (c===currentCat ? " on" : "");
+    b.textContent = c;
+    b.onclick = ()=>{ currentCat = c; renderCats(); renderGrid(); };
+    wrap.appendChild(b);
+  });
+}
+
+function renderGrid(){
+  const grid = $("grid"); grid.innerHTML = "";
+  let list = state.products;
+  if(currentCat !== "全部") list = list.filter(p=>p.cat===currentCat);
+  if(searchKey){
+    const k = searchKey.toLowerCase();
+    list = list.filter(p=>p.name.toLowerCase().includes(k));
+  }
+  if(!list.length){
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">这里还没有商品哦</div>';
+    return;
+  }
+  list.forEach(p=>{
+    const qty = cart[p.id] || 0;
+    const div = document.createElement("div");
+    div.className = "item" + (p.soldOut ? " soldout" : "");
+    let action;
+    if(p.soldOut){
+      action = '<span class="soldout-tag">已下架</span>';
+    } else if(qty === 0){
+      action = '<button class="add-btn" data-add="'+p.id+'">＋ 加入</button>';
+    } else {
+      action = '<div class="stepper">'+
+        '<button class="btn sub" data-sub="'+p.id+'">−</button>'+
+        '<span class="num">'+qty+'</span>'+
+        '<button class="btn" data-add="'+p.id+'">＋</button>'+
+      '</div>';
+    }
+    div.innerHTML =
+      '<div class="pic">'+p.emoji+'</div>'+
+      '<div class="name">'+p.name+'</div>'+
+      '<div class="price">¥'+fmt(p.price)+'</div>'+
+      action;
+    grid.appendChild(div);
+  });
+}
+
+function renderCartBar(){
+  const entries = Object.entries(cart);
+  let count = 0, total = 0;
+  entries.forEach(([id,q])=>{
+    const p = state.products.find(x=>x.id===id);
+    if(!p) return;
+    count += q; total += p.price*q;
+  });
+  $("cartTotal").textContent = "¥" + fmt(total);
+  if(count===0){
+    $("cartCount").textContent = "购物车是空的";
+    $("cartBadge").classList.add("hidden");
+    $("checkoutBtn").disabled = true;
+  } else {
+    $("cartCount").textContent = "共 " + count + " 件商品";
+    $("cartBadge").textContent = count;
+    $("cartBadge").classList.remove("hidden");
+    $("checkoutBtn").disabled = false;
+  }
+}
+
+/* ==================== 购物车操作 ==================== */
+function addToCart(id){
+  const p = state.products.find(x=>x.id===id);
+  if(!p || p.soldOut) return;
+  cart[id] = (cart[id]||0)+1;
+  saveCart(); renderGrid(); renderCartBar();
+}
+function subFromCart(id){
+  if(!cart[id]) return;
+  cart[id]--;
+  if(cart[id]<=0) delete cart[id];
+  saveCart(); renderGrid(); renderCartBar();
+}
+
+/* ==================== 结算 & 订单 ==================== */
+function openCheckout(){
+  const entries = Object.entries(cart).filter(([id,q])=>q>0);
+  if(!entries.length){ toast("购物车还是空的"); return; }
+  $("checkoutMask").classList.remove("hidden");
+}
+
+function buildOrderText(){
+  const name = $("fName").value.trim() || "未填姓名";
+  const room = $("fRoom").value.trim() || "未填宿舍";
+  const phone = $("fPhone").value.trim();
+  const note = $("fNote").value.trim();
+  let total = 0;
+  const lines = [];
+  lines.push("【"+state.shopName+" 订单】");
+  lines.push("姓名："+name);
+  lines.push("宿舍："+room);
+  if(phone) lines.push("电话："+phone);
+  lines.push("----------------------");
+  Object.entries(cart).forEach(([id,q])=>{
+    const p = state.products.find(x=>x.id===id);
+    if(!p) return;
+    const sub = p.price*q;
+    total += sub;
+    lines.push(p.emoji+" "+p.name+" ×"+q+" = ¥"+fmt(sub));
+  });
+  lines.push("----------------------");
+  lines.push("合计：¥"+fmt(total));
+  lines.push("下单时间："+new Date().toLocaleString("zh-CN",{hour12:false}));
+  if(note) lines.push("备注："+note);
+  if(state.contact) lines.push("\n"+state.contact);
+  return lines.join("\n");
+}
+
+function openOrder(){
+  const text = buildOrderText();
+  $("orderText").value = text;
+  $("checkoutMask").classList.add("hidden");
+  $("orderMask").classList.remove("hidden");
+  // 清空购物车
+  cart = {};
+  saveCart(); renderGrid(); renderCartBar();
+}
+
+/* ==================== 复制 ==================== */
+function copyText(text){
+  return new Promise((resolve)=>{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>resolve(true)).catch(()=>resolve(fallbackCopy(text)));
+    } else {
+      resolve(fallbackCopy(text));
+    }
+  });
+}
+function fallbackCopy(text){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed"; ta.style.top = "0"; ta.style.left = "0";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  let ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+/* ==================== 店主管理 ==================== */
+let currentTab = "products";
+
+function openAdmin(){
+  if(state.password){
+    $("pwdMask").classList.remove("hidden");
+    $("pwdInput").value = "";
+  } else {
+    enterAdmin();
+  }
+}
+function enterAdmin(){
+  $("customer-view").classList.add("hidden");
+  $("admin-view").classList.remove("hidden");
+  switchTab("products");
+}
+function closeAdmin(){
+  $("admin-view").classList.add("hidden");
+  $("customer-view").classList.remove("hidden");
+  renderHeader(); renderCats(); renderGrid(); renderCartBar();
+}
+
+function switchTab(t){
+  currentTab = t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  ["products","cats","settings"].forEach(k=>$("tab-"+k).classList.toggle("hidden", k!==t));
+  if(t==="products") renderAdminList();
+  if(t==="cats") renderCatList();
+  if(t==="settings") loadSettingsForm();
+}
+
+function renderAdminList(){
+  const wrap = $("adminList"); wrap.innerHTML = "";
+  if(!state.products.length){ wrap.innerHTML = '<div class="empty">还没有商品，点上面按钮添加</div>'; return; }
+  state.products.forEach(p=>{
+    const row = document.createElement("div");
+    row.className = "prow";
+    row.innerHTML =
+      '<div class="pemoji">'+p.emoji+'</div>'+
+      '<div class="pinfo"><div class="pname">'+p.name+'</div><div class="pprice">¥'+fmt(p.price)+'</div></div>'+
+      '<span class="pcat">'+p.cat+'</span>'+
+      (p.soldOut?'<span style="font-size:11px;color:var(--red);">下架</span>':'')+
+      '<button class="icon-btn" data-edit="'+p.id+'">✏️</button>'+
+      '<button class="icon-btn del" data-del="'+p.id+'">🗑️</button>';
+    wrap.appendChild(row);
+  });
+}
+
+function renderCatList(){
+  const wrap = $("catList"); wrap.innerHTML = "";
+  state.categories.forEach(c=>{
+    const chip = document.createElement("span");
+    chip.className = "cat-chip";
+    chip.innerHTML = c + ' <button class="x" data-delcat="'+c+'">×</button>';
+    wrap.appendChild(chip);
+  });
+  if(!state.categories.length) wrap.innerHTML = '<div class="empty">还没有分类</div>';
+}
+
+function loadSettingsForm(){
+  $("setName").value = state.shopName;
+  $("setNotice").value = state.notice;
+  $("setContact").value = state.contact;
+  $("setPassword").value = state.password;
+}
+
+function fillCatSelect(sel){
+  sel.innerHTML = "";
+  state.categories.forEach(c=>{
+    const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o);
+  });
+}
+
+/* ---- 商品增删改 ---- */
+let editingId = null;
+function openProductForm(id){
+  editingId = id || null;
+  fillCatSelect($("pCat"));
+  if(id){
+    const p = state.products.find(x=>x.id===id);
+    $("productTitle").innerHTML = '编辑商品 <button class="close-x" data-close="productMask">×</button>';
+    $("pName").value = p.name;
+    $("pPrice").value = p.price;
+    $("pEmoji").value = p.emoji;
+    $("pCat").value = p.cat;
+    $("pSoldOut").checked = !!p.soldOut;
+  } else {
+    $("productTitle").innerHTML = '添加商品 <button class="close-x" data-close="productMask">×</button>';
+    $("pName").value = ""; $("pPrice").value = ""; $("pEmoji").value = "";
+    if(state.categories.length) $("pCat").value = state.categories[0];
+    $("pSoldOut").checked = false;
+  }
+  $("productMask").classList.remove("hidden");
+}
+function saveProduct(){
+  const name = $("pName").value.trim();
+  const price = parseFloat($("pPrice").value);
+  const emoji = $("pEmoji").value.trim() || "🛍️";
+  const cat = $("pCat").value || (state.categories[0] || "其他");
+  if(!name){ toast("请填写商品名称"); return; }
+  if(isNaN(price) || price<0){ toast("请填写正确价格"); return; }
+  const soldOut = $("pSoldOut").checked;
+  if(editingId){
+    const p = state.products.find(x=>x.id===editingId);
+    Object.assign(p, {name, price, emoji, cat, soldOut});
+  } else {
+    state.products.push({id:uid(), name, price, emoji, cat, soldOut});
+  }
+  saveState();
+  $("productMask").classList.add("hidden");
+  renderAdminList();
+  toast("已保存");
+}
+
+/* ---- 分类 ---- */
+function addCat(){
+  const name = prompt("输入新分类名称：");
+  if(name && name.trim()){
+    if(state.categories.includes(name.trim())){ toast("分类已存在"); return; }
+    state.categories.push(name.trim());
+    saveState(); renderCatList();
+  }
+}
+function delCat(name){
+  if(!confirm("删除分类「"+name+"」？该分类下的商品不会被删除，但会变成无分类。")) return;
+  state.categories = state.categories.filter(c=>c!==name);
+  saveState(); renderCatList();
+}
+
+/* ---- 设置 ---- */
+function saveSettings(){
+  state.shopName = $("setName").value.trim() || "宿舍小卖部";
+  state.notice = $("setNotice").value.trim();
+  state.contact = $("setContact").value.trim();
+  state.password = $("setPassword").value.trim();
+  saveState(); toast("设置已保存");
+}
+
+/* ---- 数据备份 ---- */
+function exportData(){
+  copyText(JSON.stringify(state)).then(ok=>{
+    toast(ok ? "已复制到剪贴板，去粘贴保存即可" : "复制失败，请手动复制");
+  });
+  // 同时下载文件
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "小卖部配置.json";
+  a.click();
+}
+function importData(){
+  const txt = prompt("粘贴之前导出的 JSON 配置：");
+  if(!txt) return;
+  try{
+    const d = JSON.parse(txt);
+    state = Object.assign({}, DEFAULT_CONFIG, d);
+    saveState(); closeAdmin(); renderHeader(); renderCats(); renderGrid(); renderCartBar();
+    toast("导入成功");
+  }catch(e){ toast("格式不对，导入失败"); }
+}
+function resetData(){
+  if(!confirm("确定恢复默认菜单？会清空你当前的修改。")) return;
+  localStorage.removeItem(KEY);
+  state = loadState(); saveState();
+  renderAdminList(); renderCatList(); toast("已恢复默认");
+}
+
+/* ==================== 事件绑定 ==================== */
+$("openAdmin").onclick = openAdmin;
+$("backToShop").onclick = closeAdmin;
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+// 顾客端
+$("searchInput").oninput = e=>{ searchKey = e.target.value.trim(); renderGrid(); };
+$("grid").onclick = e=>{
+  const add = e.target.closest("[data-add]");
+  const sub = e.target.closest("[data-sub]");
+  if(add){ addToCart(add.dataset.add); }
+  else if(sub){ subFromCart(sub.dataset.sub); }
+};
+$("checkoutBtn").onclick = openCheckout;
+$("genOrderBtn").onclick = openOrder;
+$("copyBtn").onclick = ()=>{
+  copyText($("orderText").value).then(ok=>toast(ok ? "已复制，去微信粘贴发送吧" : "请长按上方文字手动复制"));
+};
+$("doneBtn").onclick = ()=>{ $("orderMask").classList.add("hidden"); };
+
+// 通用关闭
+document.querySelectorAll("[data-close]").forEach(b=>{
+  b.onclick = ()=>$(b.dataset.close).classList.add("hidden");
+});
+document.querySelectorAll(".mask").forEach(m=>{
+  m.addEventListener("click", e=>{ if(e.target===m) m.classList.add("hidden"); });
+});
+
+// 店主端
+$("addProductBtn").onclick = ()=>openProductForm(null);
+$("saveProductBtn").onclick = saveProduct;
+$("adminList").onclick = e=>{
+  const edit = e.target.closest("[data-edit]");
+  const del = e.target.closest("[data-del]");
+  if(edit) openProductForm(edit.dataset.edit);
+  if(del){
+    if(confirm("删除该商品？")){
+      state.products = state.products.filter(p=>p.id!==del.dataset.del);
+      saveState(); renderAdminList();
+    }
+  }
+};
+$("addCatBtn").onclick = addCat;
+$("catList").onclick = e=>{
+  const x = e.target.closest("[data-delcat]");
+  if(x) delCat(x.dataset.delcat);
+};
+$("saveSettingsBtn").onclick = saveSettings;
+$("exportBtn").onclick = exportData;
+$("importBtn").onclick = importData;
+$("resetBtn").onclick = resetData;
+$("pwdOk").onclick = ()=>{
+  if($("pwdInput").value === state.password){ $("pwdMask").classList.add("hidden"); enterAdmin(); }
+  else toast("密码不对");
+};
+$("pwdInput").addEventListener("keydown", e=>{ if(e.key==="Enter") $("pwdOk").click(); });
+
+/* ==================== 启动 ==================== */
+renderHeader();
+renderCats();
+renderGrid();
+renderCartBar();
+</script>
+</body>
+</html>
