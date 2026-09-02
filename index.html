@@ -360,15 +360,21 @@ const CART_KEY = "dormStoreCart_v1";
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+function normalizeConfig(d){
+  // 深拷贝默认配置，避免共享引用
+  const def = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  d = Object.assign({}, def, d || {});
+  // 关键：确保每个商品都有唯一 id（默认菜单没写 id，会导致加购物车失效）
+  d.products = (d.products || []).map(p => Object.assign({}, p, { id: p.id || uid() }));
+  return d;
+}
 function loadState(){
+  let d = null;
   try{
     const raw = localStorage.getItem(KEY);
-    if(raw){
-      const d = JSON.parse(raw);
-      return Object.assign({}, DEFAULT_CONFIG, d);
-    }
+    if(raw) d = JSON.parse(raw);
   }catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  return normalizeConfig(d);
 }
 function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -377,6 +383,13 @@ function saveCart(){ localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
 
 let state = loadState();
 let cart = loadCart();
+// 清理购物车里指向不存在商品的脏数据（旧版本残留）
+{
+  const validIds = new Set(state.products.map(p=>p.id));
+  let changed = false;
+  Object.keys(cart).forEach(k=>{ if(!validIds.has(k)){ delete cart[k]; changed = true; } });
+  if(changed) saveCart();
+}
 
 /* ==================== 工具 ==================== */
 const $ = id => document.getElementById(id);
@@ -704,7 +717,7 @@ function importData(){
   if(!txt) return;
   try{
     const d = JSON.parse(txt);
-    state = Object.assign({}, DEFAULT_CONFIG, d);
+    state = normalizeConfig(d);
     saveState(); closeAdmin(); renderHeader(); renderCats(); renderGrid(); renderCartBar();
     toast("导入成功");
   }catch(e){ toast("格式不对，导入失败"); }
